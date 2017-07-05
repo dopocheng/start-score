@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>星级评分3_抽出父类</title>
+<style>
+	body,ul,li{
+		padding:0;
+		margin:0;
+	}
+	li{
+		list-style-type:none;
+	}
+	.rating{
+		width:160px;
+		height:30px;
+		margin:100px auto;
+	}
+	.rating-item{
+		float:left;
+		width:32px;
+		height:30px;
+		background:url(img/星星.png) no-repeat;
+		cursor:pointer;
+	}
+</style>
+</head>
+<body>
+	<!-- 第一种实现 -->
+<ul class="rating" id="rating">
+	<li class="rating-item" title="很不好"></li>
+	<li class="rating-item" title="不好"></li>
+	<li class="rating-item" title="一般"></li>
+	<li class="rating-item" title="好"></li>
+	<li class="rating-item" title="很好"></li>
+</ul>
+<ul class="rating" id="rating2">
+	<li class="rating-item" title="很不好"></li>
+	<li class="rating-item" title="不好"></li>
+	<li class="rating-item" title="一般"></li>
+	<li class="rating-item" title="好"></li>
+	<li class="rating-item" title="很好"></li>
+</ul>
+
+<script src="http://libs.baidu.com/jquery/1.11.3/jquery.min.js"></script>
+<script>
+	var rating = (function(){
+		//继承
+		var extend = function(subClass,superClass){
+			var F =function(){};
+			F.prototype =superClass.prototype;
+			subClass.prototype =new F();
+			subClass.prototype.construtor = subClass;
+		};
+
+		//点亮
+		var Light = function(el,options){
+			this.$el = $(el);
+			this.$item = this.$el.find('.rating-item');
+			this.opts = options;
+			console.log(options);
+			this.add = 1;
+			this.selectEvent = 'mouseover';
+		};
+		Light.prototype.init = function(){
+
+			console.error(this);
+			this.lightOn(this.opts.num);
+			if(!this.opts.readOnly){			
+				this.bindEvent();
+			};
+		};
+		Light.prototype.lightOn = function(num){
+			num = parseInt(num);
+			console.error(num);
+			this.$item.each(function(index){
+				if(index < num){
+					//console.error(index+$item+"========2");
+					$(this).css('background-position','0 -40px');
+				}else{
+					$(this).css('background-position','0 0');
+				}
+			});
+		};
+		Light.prototype.bindEvent = function(){
+			var self = this,
+				itemLength = self.$item.length;
+			self.$el.on(self.selectEvent,'.rating-item',function(e){
+				var $this = $(this),
+					num =0;
+
+				self.select(e,$this);
+
+				num =$this.index()+self.add;
+				self.lightOn(num);
+				//console.error($(this).index());
+				(typeof self.opts.select === 'function') && self.opts.select.call(this,num,itemLength);
+				console.error(num + "///" + itemLength);
+				self.$el.trigger('select',[num,itemLength]);
+			}).on('click','.rating-item',function(){
+				self.opts.num = $(this).index()+self.add;
+				(typeof self.opts.chosen === 'function') && self.opts.chosen.call(this,self.opts.num,itemLength);
+				self.$el.trigger('chosen',[self.opts.num,itemLength]);
+			}).on('mouseout',function(){
+				self.lightOn(self.opts.num);
+			});
+		};
+
+		Light.prototype.select = function(){
+			throw new Error('chongxie ');
+		};
+		//点亮整颗
+		var LightEntire = function(el,options){
+			Light.call(this, el, options);
+			this.selectEvent = 'mouseover';
+		};
+		extend(LightEntire,Light);
+		LightEntire.prototype.lightOn = function(num){
+			Light.prototype.lightOn.call(this,num);
+		};
+		LightEntire.prototype.select = function(){
+			self.add=1;
+		};
+		/*LightEntire.prototype.bindEvent = function(){
+			var self = this,
+				itemLength = self.$item.length;
+			self.$el.on(self.selectEvent,'.rating-item',function(){
+				var num =$(this).index()+self.add;
+
+				self.select(){};
+				self.lightOn(num);
+				//console.error($(this).index());
+				(typeof self.opts.select === 'function') && self.opts.select.call(this,num,itemLength);
+				self.$el.trigger('select',[num,itemLength]);
+			}).on('click','.rating-item',function(){
+				self.opts.num = $(this).index()+self.add;
+				(typeof self.opts.chosen === 'function') && self.opts.chosen.call(this,self.opts.num,itemLength);
+				self.$el.trigger('chosen',[self.opts.num,itemLength]);
+			}).on('mouseout',function(){
+				self.lightOn(self.opts.num);
+			});
+		};*/
+		//点亮半颗
+		var LightHalf = function(el,options){
+			Light.call(this, el, options);
+			this.selectEvent = 'mousemove';
+		};
+		extend(LightHalf,Light);
+		LightHalf.prototype.lightOn = function(num){
+
+			var count = parseInt(num);
+				isHalf = count !== num;
+
+			Light.prototype.lightOn.call(this, count);
+
+			if(isHalf){
+				this.$item.eq(count).css('background-position','0 -80px');
+			}
+		};
+		LightHalf.prototype.select = function(e,$this){
+			var self = this;
+			if(e.pageX - $this.offset().left < $this.width()/2){//判断是半颗星
+					self.add = 0.5;
+				}else{
+					self.add = 1;
+				}
+		};
+		/*LightHalf.prototype.bindEvent = function(){
+			var self = this,
+				itemLength = self.$item.length;
+			self.$el.on('mousemove','.rating-item',function(e){
+				var $this = $(this);
+					num = 0;
+				if(e.pageX - $this.offset().left < $this.width()/2){//判断是半颗星
+					self.add = 0.5;
+				}else{
+					self.add = 1;
+				}
+
+				num = $this.index()+self.add,
+				self.select(){};
+
+				self.lightOn(num);
+				//console.error($(this).index());
+				(typeof self.opts.select === 'function') && self.opts.select.call(this,num,itemLength);
+				self.$el.trigger('select',[num,itemLength]);
+			}).on('click','.rating-item',function(){
+				self.opts.num = $(this).index()+self.add;
+				(typeof self.opts.chosen === 'function') && self.opts.chosen.call(this,self.opts.num,itemLength);
+				self.$el.trigger('chosen',[self.opts.num,itemLength]);
+			}).on(self.selectEvent,function(){
+				self.lightOn(self.opts.num);
+			});
+		};*/
+
+		//默认参数
+		var defaults = {
+			num:0,
+			mode:0,
+			readOnly:false,
+			select:function(){},
+			chosen:function(){}
+		};
+		var mode = {
+			'LightEntire':LightEntire,
+			'LightHalf':LightHalf,
+		};
+		//初始化
+		var init = function(el,options){
+			options = $.extend({},defaults,options);
+			//new LightEntire(el,options).init();
+			//new LightHalf(el,options).init();
+			if(!mode[options.mode]){//容错机制，传入的mode没有对应方法就默认LightEntire
+				options.mode='LightEntire';//直接改变mode
+				//console.error(mode+"1111");
+			}
+			new mode[options.mode](el,options).init();
+		};
+
+		return {
+			init:init
+		}
+	})();
+
+
+	rating.init('#rating',{
+		num:4.5,
+		mode:'LightHalf',
+		// select:function(num,total){
+		// 	console.error(this);
+		// 	console.error(num + '/' + total);
+		// },
+		// chosen:function(num,total){
+		// 	console.error(this);
+		// 	console.error(num + '/' + total);
+		// },
+	});
+
+	$('#rating').on('select',function(e,num,total){
+			console.error(num + '/' + total);	
+	}).on('chosen',function(e,num,total){
+		console.error(num + '/' + total);
+	});
+</script>
+</body>
+</html>	
