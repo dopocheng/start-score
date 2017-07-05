@@ -1,1 +1,1 @@
-# start-score
+# stars-score
